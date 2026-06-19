@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>不可能实验室 | Impossible Lab</title>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep: #0a0a0f;
+  --bg-card: #12121a;
+  --bg-card-hover: #1a1a28;
+  --accent-cyan: #00f0ff;
+  --accent-purple: #b347ea;
+  --accent-amber: #f0a500;
+  --text-primary: #e0e0e0;
+  --text-secondary: #8888aa;
+  --border-subtle: rgba(255,255,255,0.06);
+  --glow-cyan: 0 0 20px rgba(0,240,255,0.3);
+  --glow-purple: 0 0 20px rgba(179,71,234,0.3);
+  --radius: 12px;
+  --font-mono: 'Courier New', 'Consolas', monospace;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-mono);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ===== STARFIELD CANVAS ===== */
+#starfield {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ===== MAIN CONTAINER ===== */
+main {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+}
+
+/* ===== SETTINGS TOGGLE ===== */
+.settings-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.btn-settings {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-settings:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+/* ===== SETTINGS PANEL ===== */
+.settings-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  display: none;
+}
+.settings-panel.open { display: block; animation: fadeInDown 0.35s ease; }
+.settings-panel .row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.settings-panel .field {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.settings-panel label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.settings-panel input {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  transition: var(--transition);
+}
+.settings-panel input:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: var(--glow-cyan);
+}
+.settings-panel .hint {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  margin-top: 10px;
+}
+
+/* ===== HEADER ===== */
+.header {
+  text-align: center;
+  padding: 30px 0 20px;
+}
+.header h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.header .subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+}
+
+/* ===== EXPERIMENT CARDS ===== */
+.exp-cards {
+  display: flex;
+  gap: 14px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+.exp-card {
+  flex: 1;
+  min-width: 140px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.exp-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  opacity: 0;
+  transition: opacity 0.4s;
+  background: linear-gradient(135deg, rgba(0,240,255,0.06), rgba(179,71,234,0.06));
+}
+.exp-card:hover { border-color: var(--accent-cyan); transform: translateY(-2px); box-shadow: var(--glow-cyan); }
+.exp-card:hover::before { opacity: 1; }
+.exp-card.active {
+  border-color: var(--accent-purple);
+  box-shadow: var(--glow-purple);
+  background: var(--bg-card-hover);
+}
+.exp-card.active::before { opacity: 1; }
+.exp-card .card-emoji { font-size: 2rem; margin-bottom: 8px; position: relative; }
+.exp-card .card-title { font-size: 0.85rem; font-weight: 600; position: relative; }
+.exp-card .card-desc { font-size: 0.65rem; color: var(--text-secondary); margin-top: 4px; position: relative; }
+
+/* ===== PARAMETER PANEL ===== */
+.param-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  margin: 16px 0;
+  display: none;
+}
+.param-panel.visible { display: block; animation: fadeInDown 0.4s ease; }
+.param-panel h3 {
+  font-size: 0.9rem;
+  color: var(--accent-cyan);
+  margin-bottom: 16px;
+  letter-spacing: 2px;
+}
+.param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.param-row label {
+  min-width: 90px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.param-row input[type="range"] {
+  flex: 1;
+  min-width: 120px;
+  -webkit-appearance: none;
+  height: 6px;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.param-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--accent-cyan);
+  cursor: pointer;
+  box-shadow: var(--glow-cyan);
+}
+.param-row .param-value {
+  min-width: 60px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+/* ===== RUN BUTTON ===== */
+.btn-run-wrap {
+  text-align: center;
+  margin: 24px 0;
+}
+.btn-run {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 14px 48px;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.btn-run:hover { box-shadow: 0 0 30px rgba(179,71,234,0.5); transform: translateY(-2px); }
+.btn-run:active { transform: translateY(0); }
+.btn-run:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(40%);
+}
+.btn-run .spinner-inline {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+.btn-run.loading .spinner-inline { display: inline-block; }
+
+/* ===== ERROR / LOADING ===== */
+.error-box {
+  background: rgba(255,60,60,0.1);
+  border: 1px solid rgba(255,60,60,0.3);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin: 16px 0;
+  color: #ff6b6b;
+  font-size: 0.8rem;
+  display: none;
+}
+.error-box.show { display: block; animation: fadeIn 0.3s ease; }
+
+.loading-indicator {
+  text-align: center;
+  padding: 40px;
+  display: none;
+}
+.loading-indicator.show { display: block; }
+.atom-spinner {
+  display: inline-block;
+  width: 60px;
+  height: 60px;
+  border: 3px solid transparent;
+  border-top-color: var(--accent-cyan);
+  border-bottom-color: var(--accent-purple);
+  border-radius: 50%;
+  animation: spin 1.2s linear infinite;
+  position: relative;
+}
+.atom-spinner::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 3px solid transparent;
+  border-left-color: var(--accent-cyan);
+  border-right-color: var(--accent-purple);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite reverse;
+}
+.atom-spinner::after {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+.loading-text {
+  margin-top: 16px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
+
+/* ===== RESULTS ===== */
+.results-container {
+  display: none;
+  margin: 20px 0;
+}
+.results-container.show { display: block; }
+
+.step-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 14px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease, box-shadow var(--transition);
+}
+.step-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.step-card:hover { border-color: var(--accent-cyan); box-shadow: var(--glow-cyan); }
+.step-card .step-phase {
+  font-size: 0.7rem;
+  color: var(--accent-purple);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.step-card .step-content {
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.climax-box {
+  background: linear-gradient(135deg, rgba(0,240,255,0.08), rgba(179,71,234,0.08));
+  border: 2px solid var(--accent-cyan);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin: 24px 0;
+  text-align: center;
+  animation: pulse 2s ease-in-out infinite;
+}
+.climax-box .climax-label {
+  font-size: 0.7rem;
+  color: var(--accent-purple);
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+}
+.climax-box .climax-text {
+  font-size: 1.1rem;
+  color: var(--accent-cyan);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* ===== PAPER BUTTON ===== */
+.btn-paper-wrap { text-align: center; margin: 24px 0; display: none; }
+.btn-paper-wrap.show { display: block; }
+.btn-paper {
+  background: transparent;
+  border: 2px solid var(--accent-amber);
+  color: var(--accent-amber);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 12px 36px;
+  border-radius: 30px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  transition: var(--transition);
+}
+.btn-paper:hover { background: rgba(240,165,0,0.1); box-shadow: 0 0 20px rgba(240,165,0,0.3); }
+.btn-paper:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===== PAPER MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+.modal-overlay.open { display: flex; animation: fadeIn 0.3s ease; }
+.modal-paper {
+  background: #fafaf8;
+  color: #1a1a1a;
+  border-radius: 6px;
+  max-width: 1000px;
+  width: 100%;
+  margin: 20px auto;
+  padding: 0;
+  position: relative;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  animation: fadeInUp 0.5s ease;
+}
+.modal-paper .paper-close {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1001;
+  transition: var(--transition);
+}
+.modal-paper .paper-close:hover { background: rgba(255,60,60,0.8); }
+.paper-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-height: 80vh;
+}
+.paper-column {
+  padding: 40px 36px;
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+  max-height: 90vh;
+}
+.paper-column:last-child { border-right: none; }
+.paper-column h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 12px; color: #111; }
+.paper-column h2 { font-size: 1rem; font-weight: 700; margin: 18px 0 8px; color: #222; }
+.paper-column h3 { font-size: 0.85rem; font-weight: 700; margin: 14px 0 6px; color: #333; }
+.paper-column p { font-size: 0.8rem; line-height: 1.7; margin-bottom: 10px; text-align: justify; }
+.paper-column strong { font-weight: 700; }
+.paper-column em { font-style: italic; }
+.paper-column .paper-title-main {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.3;
+}
+.paper-column .authors { text-align: center; font-size: 0.75rem; color: #555; margin-bottom: 16px; }
+.paper-column .abstract-label { font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; }
+.paper-column .abstract-text { font-size: 0.8rem; font-style: italic; color: #444; margin-bottom: 20px; padding-left: 12px; border-left: 2px solid #ccc; }
+
+/* ===== FOOTER ===== */
+.footer {
+  text-align: center;
+  padding: 40px 0 20px;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 15px rgba(0,240,255,0.2); } 50% { box-shadow: 0 0 35px rgba(0,240,255,0.5); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .header h1 { font-size: 1.6rem; }
+  .exp-cards { flex-direction: column; }
+  .paper-inner { grid-template-columns: 1fr; }
+  .paper-column { max-height: none; border-right: none; border-bottom: 1px solid #ddd; padding: 24px 20px; }
+  .settings-panel .row { flex-direction: column; }
+  .param-row { flex-direction: column; align-items: flex-start; }
+  .param-row label { min-width: auto; }
+  .modal-overlay { padding: 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Starfield Canvas -->
+<canvas id="starfield"></canvas>
+
+<main>
+  <!-- Settings Toggle -->
+  <div class="settings-bar">
+    <button class="btn-settings" id="btnSettings" title="API 设置">⚙ 设置</button>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel" id="settingsPanel">
+    <div class="row">
+      <div class="field">
+        <label>API Base URL</label>
+        <input type="text" id="apiBaseUrl" placeholder="https://api.deepseek.com">
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <input type="password" id="apiKey" placeholder="sk-...">
+      </div>
+      <div class="field">
+        <label>模型名称</label>
+        <input type="text" id="modelName" placeholder="deepseek-v4-pro">
+      </div>
+    </div>
+    <div class="hint">💡 推荐模型：deepseek-v4-pro（最强）/ deepseek-v4-flash（更快）。deepseek-chat 将于 2026-07-24 弃用。配置保存在本地浏览器。</div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🔬 不可能实验室</h1>
+    <div class="subtitle">IMPOSSIBLE THOUGHT EXPERIMENT SIMULATOR</div>
+  </div>
+
+  <!-- Experiment Cards -->
+  <div class="exp-cards" id="expCards">
+    <div class="exp-card active" data-exp="cube-earth">
+      <div class="card-emoji">🟫</div>
+      <div class="card-title">立方体地球</div>
+      <div class="card-desc">Cube Earth Simulation</div>
+    </div>
+    <div class="exp-card" data-exp="slow-light">
+      <div class="card-emoji">🚲</div>
+      <div class="card-title">光速 30 km/h</div>
+      <div class="card-desc">Slow Light World</div>
+    </div>
+    <div class="exp-card" data-exp="petri-dish">
+      <div class="card-emoji">🧫</div>
+      <div class="card-title">培养皿文明</div>
+      <div class="card-desc">Petri Dish Civilization</div>
+    </div>
+  </div>
+
+  <!-- Parameter Panel -->
+  <div class="param-panel visible" id="paramPanel"></div>
+
+  <!-- Run Button -->
+  <div class="btn-run-wrap">
+    <button class="btn-run" id="btnRun">
+      <span class="spinner-inline"></span>🚀 运行实验
+    </button>
+  </div>
+
+  <!-- Error Box -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Loading Indicator -->
+  <div class="loading-indicator" id="loadingIndicator">
+    <div class="atom-spinner"></div>
+    <div class="loading-text">正在推演平行宇宙...</div>
+  </div>
+
+  <!-- Results Container -->
+  <div class="results-container" id="resultsContainer"></div>
+
+  <!-- Paper Button -->
+  <div class="btn-paper-wrap" id="btnPaperWrap">
+    <button class="btn-paper" id="btnPaper">📄 生成 Nature 论文</button>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">不可能实验室 · IMPOSSIBLE LAB · 平行宇宙研究所 © 2026</div>
+</main>
+
+<!-- Paper Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <button class="paper-close" id="btnModalClose">&times;</button>
+  <div class="modal-paper">
+    <div class="paper-inner" id="paperInner"></div>
+  </div>
+</div>
+
+<script>
+// ========== STARS BACKGROUND ==========
+(() => {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  let w, h;
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Generate stars
+  const STAR_COUNT = 200;
+  for (let i = 0; i < STAR_COUNT; i++) {
+    stars.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: Math.random() * 1.8 + 0.3,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
+      twinkleOffset: Math.random() * Math.PI * 2,
+      brightness: Math.random(),
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    // Deep space gradient overlay
+    const grad = ctx.createRadialGradient(w * 0.3, h * 0.4, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.7);
+    grad.addColorStop(0, 'rgba(15,15,30,0)');
+    grad.addColorStop(1, 'rgba(5,5,15,0.6)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    const now = Date.now() * 0.001;
+    for (const s of stars) {
+      const alpha = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(now * s.twinkleSpeed * 60 + s.twinkleOffset));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,220,255,${alpha})`;
+      ctx.fill();
+      // Glow for brighter stars
+      if (s.r > 1.2) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,240,255,${alpha * 0.08})`;
+        ctx.fill();
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  // Update star positions on resize
+  window.addEventListener('resize', () => {
+    resize();
+    for (const s of stars) {
+      s.x = Math.random() * w;
+      s.y = Math.random() * h;
+    }
+  });
+})();
+
+// ========== DOM REFS ==========
+const $settingsPanel = document.getElementById('settingsPanel');
+const $btnSettings = document.getElementById('btnSettings');
+const $apiBaseUrl = document.getElementById('apiBaseUrl');
+const $apiKey = document.getElementById('apiKey');
+const $modelName = document.getElementById('modelName');
+const $expCards = document.getElementById('expCards');
+const $paramPanel = document.getElementById('paramPanel');
+const $btnRun = document.getElementById('btnRun');
+const $errorBox = document.getElementById('errorBox');
+const $loading = document.getElementById('loadingIndicator');
+const $results = document.getElementById('resultsContainer');
+const $btnPaperWrap = document.getElementById('btnPaperWrap');
+const $btnPaper = document.getElementById('btnPaper');
+const $modalOverlay = document.getElementById('modalOverlay');
+const $paperInner = document.getElementById('paperInner');
+const $btnModalClose = document.getElementById('btnModalClose');
+
+// ========== STATE ==========
+const DEFAULT_CFG = {
+  apiBaseUrl: 'https://api.deepseek.com',
+  apiKey: '',
+  modelName: 'deepseek-v4-pro',
+};
+let cfg = { ...DEFAULT_CFG };
+let currentExp = 'cube-earth';
+let lastResult = null; // { title, steps, climax, paper_title, paper_abstract, paper_discussion }
+let isRunning = false;
+
+// ========== EXPERIMENT DEFINITIONS ==========
+const EXPERIMENTS = {
+  'cube-earth': {
+    name: '立方体地球',
+    emoji: '🟫',
+    params: [
+      { id: 'sideLen', label: '边长 (km)', min: 1000, max: 20000, step: 100, value: 8000, unit: ' km' },
+      { id: 'rotation', label: '自转速度', min: 0.1, max: 5, step: 0.1, value: 1, unit: ' 倍' },
+      { id: 'tilt', label: '地轴倾角', min: 0, max: 90, step: 1, value: 23.5, unit: '°' },
+    ],
+    userPrompt(sideLen, rotation, tilt) {
+      return `立方体地球，参数：边长${sideLen}km，自转速度${rotation}倍地球自转，地轴倾角${tilt}°。分6步推演：重力分布、大气流动、海洋形态、气候带、人类定居点、最致命的危险。每步给具体数值。`;
+    },
+  },
+  'slow-light': {
+    name: '光速 30 km/h 的世界',
+    emoji: '🚲',
+    params: [
+      { id: 'speed', label: '车速 (km/h)', min: 1, max: 29.9, step: 0.5, value: 15, unit: ' km/h' },
+      { id: 'distance', label: '骑行距离 (m)', min: 10, max: 5000, step: 10, value: 500, unit: ' m' },
+    ],
+    userPrompt(speed, distance) {
+      return `光速30km/h的世界：车速${speed}km/h，距离${distance}m。用洛伦兹因子计算：时间膨胀、视觉多普勒效应、长度收缩、日常生活怪象、文明形态。要具体数值。`;
+    },
+  },
+  'petri-dish': {
+    name: '培养皿文明',
+    emoji: '🧫',
+    params: [
+      { id: 'oxygen', label: '氧气浓度 (%)', min: 1, max: 50, step: 1, value: 21, unit: '%' },
+      { id: 'temperature', label: '温度 (°C)', min: -50, max: 100, step: 0.5, value: 25, unit: ' °C' },
+      { id: 'gravity', label: '重力系数', min: 0.05, max: 3, step: 0.05, value: 1, unit: ' g' },
+    ],
+    userPrompt(oxygen, temperature, gravity) {
+      return `培养皿文明：氧气${oxygen}%，温度${temperature}°C，重力${gravity}g。推演6阶段：原始汤、生命诞生、大氧化、智慧诞生、科技树、太空计划。`;
+    },
+  },
+};
+
+// ========== INIT ==========
+function loadConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('impossible-lab-cfg') || '{}');
+    cfg = { ...DEFAULT_CFG, ...saved };
+  } catch { /* ignore */ }
+  $apiBaseUrl.value = cfg.apiBaseUrl;
+  $apiKey.value = cfg.apiKey;
+  $modelName.value = cfg.modelName;
+}
+
+function saveConfig() {
+  cfg.apiBaseUrl = $apiBaseUrl.value.trim() || DEFAULT_CFG.apiBaseUrl;
+  cfg.apiKey = $apiKey.value.trim();
+  cfg.modelName = $modelName.value.trim() || DEFAULT_CFG.modelName;
+  localStorage.setItem('impossible-lab-cfg', JSON.stringify(cfg));
+}
+
+function getApiConfig() {
+  return {
+    baseUrl: $apiBaseUrl.value.trim() || DEFAULT_CFG.apiBaseUrl,
+    apiKey: $apiKey.value.trim(),
+    model: $modelName.value.trim() || DEFAULT_CFG.modelName,
+  };
+}
+
+// ========== SETTINGS TOGGLE ==========
+$btnSettings.addEventListener('click', () => {
+  $settingsPanel.classList.toggle('open');
+});
+
+// Save config on input change
+[$apiBaseUrl, $apiKey, $modelName].forEach(el => {
+  el.addEventListener('change', saveConfig);
+  el.addEventListener('blur', saveConfig);
+});
+
+// ========== EXPERIMENT SELECTION ==========
+$expCards.addEventListener('click', (e) => {
+  const card = e.target.closest('.exp-card');
+  if (!card) return;
+  currentExp = card.dataset.exp;
+  $expCards.querySelectorAll('.exp-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  renderParamPanel();
+  resetResults();
+});
+
+// ========== RENDER PARAM PANEL ==========
+function renderParamPanel() {
+  const exp = EXPERIMENTS[currentExp];
+  if (!exp) return;
+  let html = `<h3>⚗ ${exp.emoji} ${exp.name} — 实验参数</h3><div class="param-group">`;
+  for (const p of exp.params) {
+    html += `
+      <div class="param-row">
+        <label>${p.label}</label>
+        <input type="range" id="param-${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.value}">
+        <span class="param-value" id="val-${p.id}">${p.value}${p.unit}</span>
+      </div>`;
+  }
+  html += '</div>';
+  $paramPanel.innerHTML = html;
+  $paramPanel.classList.add('visible');
+
+  // Attach slider listeners
+  for (const p of exp.params) {
+    const slider = document.getElementById(`param-${p.id}`);
+    const display = document.getElementById(`val-${p.id}`);
+    slider.addEventListener('input', () => {
+      display.textContent = slider.value + p.unit;
+    });
+  }
+}
+
+function getParamValues() {
+  const exp = EXPERIMENTS[currentExp];
+  const vals = {};
+  for (const p of exp.params) {
+    const slider = document.getElementById(`param-${p.id}`);
+    vals[p.id] = slider ? parseFloat(slider.value) : p.value;
+  }
+  return vals;
+}
+
+// ========== API CALL ==========
+async function callAPI(messages, temperature = 0.9) {
+  const { baseUrl, apiKey, model } = getApiConfig();
+  if (!apiKey) throw new Error('请先在设置中填写 API Key');
+
+  const url = baseUrl.replace(/\/+$/, '') + '/chat/completions';
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: messages,
+      temperature: temperature,
+    }),
+  });
+
+  if (!resp.ok) {
+    let detail = '';
+    try {
+      const err = await resp.json();
+      detail = err.error?.message || JSON.stringify(err);
+    } catch { detail = resp.statusText; }
+    throw new Error(`API 请求失败 (${resp.status}): ${detail}`);
+  }
+
+  const data = await resp.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('API 返回内容为空');
+  return content;
+}
+
+// ========== RUN EXPERIMENT ==========
+$btnRun.addEventListener('click', async () => {
+  if (isRunning) return;
+  const exp = EXPERIMENTS[currentExp];
+  const vals = getParamValues();
+  const userMsg = exp.userPrompt(...exp.params.map(p => vals[p.id]));
+
+  const systemPrompt = '你是一位在平行宇宙研究所工作的理论科学家。你负责运行地球上无法实现的思想实验模拟器。你的回复必须科学严谨但有想象力，给出具体数值和公式推导，语言生动有画面感。严格按照JSON格式输出：{ "title": "实验名称", "steps": [{"phase": "阶段名", "content": "详细推演内容"}], "climax": "最震撼的发现一句话", "paper_title": "Nature论文标题", "paper_abstract": "摘要150字", "paper_discussion": "讨论与启示" }';
+
+  isRunning = true;
+  $btnRun.classList.add('loading');
+  $btnRun.querySelector('.spinner-inline').style.display = 'inline-block';
+  $errorBox.classList.remove('show');
+  $errorBox.textContent = '';
+  $loading.classList.add('show');
+  $results.classList.remove('show');
+  $results.innerHTML = '';
+  $btnPaperWrap.classList.remove('show');
+  lastResult = null;
+
+  try {
+    const raw = await callAPI([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMsg },
+    ]);
+
+    // Try to extract JSON from the response
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('AI 返回格式无法解析，未找到有效 JSON。请重试。');
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!parsed.steps || !Array.isArray(parsed.steps)) {
+      throw new Error('AI 返回的 JSON 缺少 steps 字段');
+    }
+
+    lastResult = parsed;
+    renderResults(parsed);
+    $results.classList.add('show');
+    $btnPaperWrap.classList.add('show');
+    // Scroll to results
+    $results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    $errorBox.textContent = '❌ ' + (err.message || '未知错误');
+    $errorBox.classList.add('show');
+  } finally {
+    isRunning = false;
+    $btnRun.classList.remove('loading');
+    $btnRun.querySelector('.spinner-inline').style.display = 'none';
+    $loading.classList.remove('show');
+  }
+});
+
+// ========== RENDER RESULTS ==========
+function renderResults(data) {
+  let html = '';
+
+  // Title
+  if (data.title) {
+    html += `<div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:1.3rem;color:var(--accent-cyan);font-weight:700;">${escapeHtml(data.title)}</span>
+    </div>`;
+  }
+
+  // Steps
+  if (data.steps) {
+    data.steps.forEach((step, i) => {
+      html += `
+        <div class="step-card" style="animation-delay:${i * 0.15}s">
+          <div class="step-phase">▸ 第${i + 1}阶段：${escapeHtml(step.phase || '')}</div>
+          <div class="step-content">${escapeHtml(step.content || '')}</div>
+        </div>`;
+    });
+  }
+
+  // Climax
+  if (data.climax) {
+    html += `
+      <div class="climax-box">
+        <div class="climax-label">💥 最震撼的发现</div>
+        <div class="climax-text">${escapeHtml(data.climax)}</div>
+      </div>`;
+  }
+
+  $results.innerHTML = html;
+
+  // Animate step cards in
+  requestAnimationFrame(() => {
+    const cards = $results.querySelectorAll('.step-card');
+    cards.forEach((card, i) => {
+      setTimeout(() => card.classList.add('visible'), i * 200 + 100);
+    });
+  });
+}
+
+function resetResults() {
+  $results.classList.remove('show');
+  $results.innerHTML = '';
+  $btnPaperWrap.classList.remove('show');
+  $errorBox.classList.remove('show');
+  lastResult = null;
+}
+
+// ========== GENERATE PAPER ==========
+$btnPaper.addEventListener('click', async () => {
+  if (isRunning || !lastResult) return;
+
+  const exp = EXPERIMENTS[currentExp];
+  const vals = getParamValues();
+  const paramsDesc = exp.params.map(p => `${p.label}=${vals[p.id]}${p.unit}`).join(', ');
+
+  const paperPrompt = `基于以下思想实验的结果，撰写一篇完整的Nature格式学术论文（Markdown格式），包括：
+- 标题（英文）
+- 作者：Parallel Universe Research Institute
+- 摘要（约150字）
+- 引言
+- 方法与模型
+- 结果
+- 讨论与启示
+- 参考文献（虚构3篇相关平行宇宙研究的文献）
+
+实验名称：${lastResult.title || exp.name}
+实验参数：${paramsDesc}
+推演发现：${lastResult.climax || '无'}
+详细阶段：${(lastResult.steps || []).map(s => s.phase + ': ' + s.content).join('; ')}
+
+请直接输出Markdown，不要用JSON包裹。`;
+
+  isRunning = true;
+  $btnPaper.disabled = true;
+  $btnPaper.textContent = '⏳ 生成中...';
+  $errorBox.classList.remove('show');
+
+  try {
+    const raw = await callAPI([
+      { role: 'system', content: '你是一位Nature期刊的科学编辑，擅长撰写学术论文。请用Markdown格式输出，语言严谨专业。' },
+      { role: 'user', content: paperPrompt },
+    ]);
+    showPaperModal(raw);
+  } catch (err) {
+    $errorBox.textContent = '❌ 论文生成失败: ' + (err.message || '未知错误');
+    $errorBox.classList.add('show');
+  } finally {
+    isRunning = false;
+    $btnPaper.disabled = false;
+    $btnPaper.textContent = '📄 生成 Nature 论文';
+  }
+});
+
+// ========== PAPER MODAL ==========
+function showPaperModal(markdown) {
+  const html = markdownToHTML(markdown);
+  // Split into two columns roughly
+  const sections = html.split('<hr>');
+  let col1 = '', col2 = '';
+  if (sections.length <= 1) {
+    // Try splitting by h2
+    const h2Parts = html.split(/(?=<h2)/);
+    const mid = Math.ceil(h2Parts.length / 2);
+    col1 = h2Parts.slice(0, mid).join('');
+    col2 = h2Parts.slice(mid).join('');
+    if (!col2.trim()) { col1 = html; col2 = ''; }
+  } else {
+    const mid = Math.ceil(sections.length / 2);
+    col1 = sections.slice(0, mid).join('<hr>');
+    col2 = sections.slice(mid).join('<hr>');
+  }
+
+  $paperInner.innerHTML = `
+    <div class="paper-column">${col1}</div>
+    <div class="paper-column">${col2 || '<p style="color:#999;">（续）</p>'}</div>`;
+  $modalOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  $modalOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+$btnModalClose.addEventListener('click', closeModal);
+$modalOverlay.addEventListener('click', (e) => {
+  if (e.target === $modalOverlay) closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ========== MARKDOWN TO HTML ==========
+function markdownToHTML(md) {
+  let html = md;
+
+  // Escape HTML first (but we want to render it, so skip that — just handle basic MD)
+  // Headings
+  html = html.replace(/^#### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 class="paper-title-main">$1</h1>');
+
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code style="background:#eee;padding:1px 4px;border-radius:3px;font-size:0.75rem;">$1</code>');
+
+  // Horizontal rules
+  html = html.replace(/^---+/gm, '<hr>');
+
+  // Paragraphs: double newlines
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = '<p>' + html + '</p>';
+
+  // Clean up empty paragraphs
+  html = html.replace(/<p>\s*<\/p>/g, '');
+  html = html.replace(/<p>(<h[123])/g, '$1');
+  html = html.replace(/(<\/h[123]>)<\/p>/g, '$1');
+  html = html.replace(/<p><hr><\/p>/g, '<hr>');
+
+  return html;
+}
+
+// ========== HELPERS ==========
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ========== BOOT ==========
+loadConfig();
+renderParamPanel();
+</script>
+</body>
+</html>
